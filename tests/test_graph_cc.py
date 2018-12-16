@@ -1,5 +1,5 @@
 import daisy
-import segment
+from funlib import segment
 
 if __name__ == "__main__":
 
