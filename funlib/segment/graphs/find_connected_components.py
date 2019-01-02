@@ -70,7 +70,8 @@ def find_connected_components(
             list(e[2] for e in graph.edges(data=edge_score_attribute)),
             dtype=np.float32)
     else:
-        scores = np.array([], dtype=np.float32)
+        scores = np.ones(len(graph.edges), dtype=np.float32)
+        edge_score_threshold = 1
 
     # find connected components
     components = connected_components(
