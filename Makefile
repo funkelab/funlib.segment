@@ -2,6 +2,7 @@ default:
 	pip install -r requirements.txt
 	pip install .
 
-.PHONY: test
-test:
-	python -m tests -v
+.PHONY: tests
+tests:
+	pip install -r requirements_dev.txt
+	pytest -v funlib
