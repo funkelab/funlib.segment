@@ -7,5 +7,6 @@
 *.dat
 *.lock
 *.cpp
+*.so
 *.coverage
 build
