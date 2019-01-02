@@ -4,5 +4,5 @@ default:
 
 .PHONY: tests
 tests:
-	pip install -r requirements_dev.txt
-	pytest -v funlib
+	pytest -v --cov=funlib funlib
+	flake8 funlib
