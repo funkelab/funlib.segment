@@ -65,5 +65,5 @@ def replace_values(array, old_values, new_values, inplace=False):
         if not inplace:
             array = array.copy()
 
-        replace_values_inplace(array, values_map)
+        replace_values_inplace(np.ravel(array, order='A'), values_map)
         return array
