@@ -84,7 +84,7 @@ def find_connected_components(
 
         # write back node attributes
         for node, component in zip(nodes, components):
-            graph.node[node_component_attribute] = component
+            graph.nodes[node][node_component_attribute] = component
 
     if return_lut:
 
