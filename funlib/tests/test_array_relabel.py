@@ -2,6 +2,7 @@ from funlib import segment
 import numpy as np
 import unittest
 
+
 class TestArrayRelabel(unittest.TestCase):
 
     def test_replace(self):

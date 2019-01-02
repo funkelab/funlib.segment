@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from .impl import connected_components
 import numpy as np
 
+
 def find_connected_components(
         graph,
         node_component_attribute=None,
@@ -72,7 +73,11 @@ def find_connected_components(
         scores = np.array([], dtype=np.float32)
 
     # find connected components
-    components = connected_components(nodes, edges, scores, edge_score_threshold)
+    components = connected_components(
+        nodes,
+        edges,
+        scores,
+        edge_score_threshold)
 
     if node_component_attribute is not None:
 
@@ -84,5 +89,5 @@ def find_connected_components(
 
         return {
             node: component
-            for node, component in  zip(nodes, components)
+            for node, component in zip(nodes, components)
         }

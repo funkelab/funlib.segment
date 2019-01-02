@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from .impl import replace_values_inplace
 import numpy as np
 
+
 def replace_values(array, old_values, new_values, inplace=False):
     '''Replace each ``old_values`` in ``array`` with the corresponding
     ``new_values``. Other values are not changed.
@@ -24,8 +25,8 @@ def replace_values(array, old_values, new_values, inplace=False):
     if value_range < 1024**3:
 
         valid_values = np.logical_and(
-            old_values>=min_value,
-            old_values<=max_value)
+            old_values >= min_value,
+            old_values <= max_value)
         old_values = old_values[valid_values]
         new_values = new_values[valid_values]
 

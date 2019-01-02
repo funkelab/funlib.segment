@@ -2,12 +2,13 @@ from __future__ import absolute_import
 from .replace_values import replace_values
 import numpy as np
 
+
 def relabel(array, return_backwards_map=False, inplace=False):
     '''Relabel array, such that IDs are consecutive. Excludes 0.'''
 
     # get all labels except 0
     old_labels = np.unique(array)
-    old_labels = old_labels[old_labels!=0]
+    old_labels = old_labels[old_labels != 0]
 
     if old_labels.size == 0:
 

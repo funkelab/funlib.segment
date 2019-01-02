@@ -2,6 +2,7 @@ from funlib import segment
 import daisy
 import unittest
 
+
 class TestGraphCc(unittest.TestCase):
 
     def test_graph_cc(self):
