@@ -1,4 +1,5 @@
 default:
+	pip install -r requirements.txt
 	pip install .
 
 .PHONY: test

@@ -1,2 +1,3 @@
-daisy
+-e git://github.com/funkelab/daisy.git#egg=daisy
+cython
 numpy
