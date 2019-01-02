@@ -23,21 +23,21 @@ class TestArrayRelabel(unittest.TestCase):
         np.testing.assert_array_equal(a, [100, 101, 102, 103, 104, 105])
         np.testing.assert_array_equal(b, [100, 101, 2, 3, 104, 105])
 
-        a = np.array([1e6, 1e7], dtype=np.uint64)
+        a = np.array([1e6, 1e12], dtype=np.uint64)
         old = np.array([1e6], dtype=np.uint64)
         new = np.array([1], dtype=np.uint64)
         b = segment.arrays.replace_values(a, old, new)
 
-        np.testing.assert_array_equal(a, [1e6, 1e7])
-        np.testing.assert_array_equal(b, [1, 1e7])
+        np.testing.assert_array_equal(a, [1e6, 1e12])
+        np.testing.assert_array_equal(b, [1, 1e12])
 
-        a = np.array([0, 1e6, 1e7], dtype=np.uint64)
+        a = np.array([0, 1e6, 1e12], dtype=np.uint64)
         old = np.array([1e6], dtype=np.uint64)
         new = np.array([1], dtype=np.uint64)
         b = segment.arrays.replace_values(a, old, new)
 
-        np.testing.assert_array_equal(a, [0, 1e6, 1e7])
-        np.testing.assert_array_equal(b, [0, 1, 1e7])
+        np.testing.assert_array_equal(a, [0, 1e6, 1e12])
+        np.testing.assert_array_equal(b, [0, 1, 1e12])
 
     def test_replace_inplace(self):
 
@@ -57,18 +57,69 @@ class TestArrayRelabel(unittest.TestCase):
         np.testing.assert_array_equal(a, [100, 101, 2, 3, 104, 105])
         np.testing.assert_array_equal(b, [100, 101, 2, 3, 104, 105])
 
-        a = np.array([1e6, 1e7], dtype=np.uint64)
+        a = np.array([1e6, 1e12], dtype=np.uint64)
         old = np.array([1e6], dtype=np.uint64)
         new = np.array([1], dtype=np.uint64)
         b = segment.arrays.replace_values(a, old, new, inplace=True)
 
-        np.testing.assert_array_equal(a, [1, 1e7])
-        np.testing.assert_array_equal(b, [1, 1e7])
+        np.testing.assert_array_equal(a, [1, 1e12])
+        np.testing.assert_array_equal(b, [1, 1e12])
 
-        a = np.array([0, 1e6, 1e7], dtype=np.uint64)
+        a = np.array([0, 1e6, 1e12], dtype=np.uint64)
         old = np.array([1e6], dtype=np.uint64)
         new = np.array([1], dtype=np.uint64)
         b = segment.arrays.replace_values(a, old, new, inplace=True)
 
-        np.testing.assert_array_equal(a, [0, 1, 1e7])
-        np.testing.assert_array_equal(b, [0, 1, 1e7])
+        np.testing.assert_array_equal(a, [0, 1, 1e12])
+        np.testing.assert_array_equal(b, [0, 1, 1e12])
+
+    def test_relabel(self):
+
+        a = np.array([0, 1, 2, 3, 4, 5])
+        b, n, bmap = segment.arrays.relabel(a, return_backwards_map=True)
+
+        assert n == 5
+        np.testing.assert_array_equal(a, b)
+        np.testing.assert_array_equal(bmap, [0, 1, 2, 3, 4, 5])
+
+        a = np.array([0])
+        b, n, bmap = segment.arrays.relabel(a, return_backwards_map=True)
+
+        assert n == 0
+        np.testing.assert_array_equal(a, b)
+        np.testing.assert_array_equal(bmap, [0])
+
+        a = np.array([0])
+        b, n = segment.arrays.relabel(a)
+
+        assert n == 0
+        np.testing.assert_array_equal(a, b)
+
+        a = np.array([])
+        b, n, bmap = segment.arrays.relabel(a, return_backwards_map=True)
+
+        assert n == 0
+        np.testing.assert_array_equal(a, b)
+        np.testing.assert_array_equal(bmap, [])
+
+        a = np.array([])
+        b, n = segment.arrays.relabel(a)
+
+        assert n == 0
+        np.testing.assert_array_equal(a, b)
+
+        a = np.array([0, 100, 2, 1e8, 4, 5], dtype=np.uint64)
+        b, n, bmap = segment.arrays.relabel(a, return_backwards_map=True)
+
+        assert n == 5
+        np.testing.assert_array_equal(a, [0, 100, 2, 1e8, 4, 5])
+        np.testing.assert_array_equal(b, [0, 4, 1, 5, 2, 3])
+        np.testing.assert_array_equal(bmap, [0, 2, 4, 5, 100, 1e8])
+
+        a = np.array([0, 100, 2, 1e8, 4, 5], dtype=np.uint64)
+        b, n = segment.arrays.relabel(a, inplace=True)
+
+        assert n == 5
+        np.testing.assert_array_equal(a, [0, 4, 1, 5, 2, 3])
+        np.testing.assert_array_equal(b, [0, 4, 1, 5, 2, 3])
+        np.testing.assert_array_equal(bmap, [0, 2, 4, 5, 100, 1e8])
