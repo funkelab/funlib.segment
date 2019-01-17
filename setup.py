@@ -1,6 +1,9 @@
 from setuptools import setup
 from setuptools.extension import Extension
 from Cython.Build import cythonize
+import numpy as np
+
+print(np.get_include())
 
 setup(
         name='funlib.segment',
@@ -24,6 +27,7 @@ setup(
                     'funlib/segment/arrays/impl/replace_values_inplace.pyx'
                 ],
                 extra_compile_args=['-O3'],
+                include_dirs=[np.get_include()],
                 language='c++'),
             Extension(
                 'funlib.segment.graphs.impl.connected_components',
@@ -32,6 +36,7 @@ setup(
                     'funlib/segment/graphs/impl/connected_components_impl.cpp'
                 ],
                 extra_compile_args=['-O3', '-std=c++11'],
+                include_dirs=[np.get_include()],
                 language='c++')
         ])
 )
