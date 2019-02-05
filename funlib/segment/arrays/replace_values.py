@@ -55,15 +55,12 @@ def replace_values(array, old_values, new_values, inplace=False):
 
     else:
 
-        # create a sparse values map
-        values_map = {
-            old_value: new_value
-            for old_value, new_value in zip(old_values, new_values)
-        }
-
         # replace using C++ implementation
         if not inplace:
             array = array.copy()
 
-        replace_values_inplace(np.ravel(array, order='A'), values_map)
+        replace_values_inplace(
+            np.ravel(array, order='A'),
+            np.ravel(old_values, order='A'),
+            np.ravel(new_values, order='A'))
         return array

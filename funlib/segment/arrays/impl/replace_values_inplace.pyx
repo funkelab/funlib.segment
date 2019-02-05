@@ -7,12 +7,18 @@ cimport numpy as np
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def replace_values_inplace(np.ndarray[np.uint64_t, ndim=1, mode='c'] array, values_map):
+def replace_values_inplace(
+        np.ndarray[np.uint64_t, ndim=1, mode='c'] array,
+        np.ndarray[np.uint64_t, ndim=1, mode='c'] old_values,
+        np.ndarray[np.uint64_t, ndim=1, mode='c'] new_values):
 
     cdef Py_ssize_t i = 0
     cdef Py_ssize_t n = array.size
     cdef np.npy_uint64* a = &array[0]
-    cdef map[np.npy_uint64, np.npy_uint64] cmap = values_map
+
+    cdef map[np.npy_uint64, np.npy_uint64] cmap
+    for i in range(old_values.size):
+        cmap[old_values[i]] = new_values[i]
 
     for i in range(n):
         it = cmap.find(a[i])
