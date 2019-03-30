@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 from .impl import replace_values_inplace
+from .impl import replace_values_inplace_using_mask
 import numpy as np
 
 
@@ -64,3 +65,30 @@ def replace_values(array, old_values, new_values, inplace=False):
             np.ravel(old_values, order='A'),
             np.ravel(new_values, order='A'))
         return array
+
+
+def replace_values_using_mask(
+        mask, mask_values, new_values, out, inplace=False):
+    '''Replace each ``mask_values`` in ``mask`` with ``new_values`` in `out``
+    at the corresponding locations. Other values are not changed.
+    '''
+
+    assert mask_values.size == new_values.size
+    assert out.size == mask.size
+    assert out.dtype == new_values.dtype
+    assert mask.dtype == mask_values.dtype
+
+    mask_values = np.array(mask_values)
+    new_values = np.array(new_values)
+
+    # replace using C++ implementation
+    if not inplace:
+        out = out.copy()
+
+    replace_values_inplace_using_mask(
+        np.ravel(mask, order='A'),
+        np.ravel(mask_values, order='A'),
+        np.ravel(new_values, order='A'),
+        np.ravel(out, order='A')
+        )
+    return out
