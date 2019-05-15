@@ -3,26 +3,49 @@ from .impl import replace_values_inplace
 import numpy as np
 
 
-def replace_values(array, old_values, new_values, inplace=False):
+def replace_values(
+        in_array, old_values, new_values, out_array=None, inplace=None):
     '''Replace each ``old_values`` in ``array`` with the corresponding
     ``new_values``. Other values are not changed.
     '''
 
+    # `inplace` and `out_array` cannot be both specified
+    if out_array is not None:
+        assert (inplace is None) or (inplace is False)
+    if inplace:
+        out_array = in_array
+
+    # `in_array` should always be a numpy array
+    assert isinstance(in_array, (np.ndarray))
+
+    # `old_values` and `new_values` are converted to numpy lists
+    # if they are not already
+    if not isinstance(old_values, (np.ndarray, np.generic)):
+        old_values = np.array(old_values, dtype=in_array.dtype)
+    if not isinstance(new_values, (np.ndarray, np.generic)):
+        if out_array is None:
+            # if `out_array` is None, its data type is guaranteed to be
+            # same as `out_array`
+            new_values = np.array(new_values, dtype=in_array.dtype)
+        else:
+            new_values = np.array(new_values, dtype=out_array.dtype)
+
     assert old_values.size == new_values.size
-    assert array.dtype == old_values.dtype
-    assert array.dtype == new_values.dtype
+    assert in_array.dtype == old_values.dtype
+    if out_array is not None:
+        assert out_array.dtype == new_values.dtype
+        assert out_array.size == in_array.size
 
-    dtype = array.dtype
+    dtype = in_array.dtype
 
-    old_values = np.array(old_values)
-    new_values = np.array(new_values)
-
-    min_value = array.min()
-    max_value = array.max()
+    min_value = in_array.min()
+    max_value = in_array.max()
     value_range = max_value - min_value
 
-    # can the relaballing be done with a values map?
-    if value_range < 1024**3:
+    # can the relabeling be done with a values map?
+    # this can only be done if `out_array` is not provided and when
+    # `out_array` is provided and it _is_ `in_array`
+    if (out_array is None or out_array is in_array) and value_range < 1024**3:
 
         valid_values = np.logical_and(
             old_values >= min_value,
@@ -32,7 +55,7 @@ def replace_values(array, old_values, new_values, inplace=False):
 
         # shift all values such that they start at 0
         offset = min_value
-        array -= offset
+        in_array -= offset
         old_values -= offset
         new_values -= offset
         min_value -= offset
@@ -42,25 +65,30 @@ def replace_values(array, old_values, new_values, inplace=False):
         values_map = np.arange(max_value + 1, dtype=dtype)
         values_map[old_values] = new_values
 
+        inplace = out_array is in_array
+
         if inplace:
 
-            array[:] = values_map[array] + offset
-            return array
+            in_array[:] = values_map[in_array] + offset
+            return out_array
 
         else:
 
-            replaced = values_map[array] + offset
-            array += offset
-            return replaced
+            out_array = values_map[in_array] + offset
+            in_array += offset
+            return out_array
 
     else:
 
         # replace using C++ implementation
-        if not inplace:
-            array = array.copy()
+
+        if out_array is None:
+            out_array = in_array.copy()
 
         replace_values_inplace(
-            np.ravel(array, order='A'),
+            np.ravel(in_array, order='A'),
             np.ravel(old_values, order='A'),
-            np.ravel(new_values, order='A'))
-        return array
+            np.ravel(new_values, order='A'),
+            np.ravel(out_array, order='A'))
+
+        return out_array
