@@ -30,6 +30,15 @@ setup(
                 include_dirs=[np.get_include()],
                 language='c++'),
             Extension(
+                'funlib.segment.arrays.impl.find_components',
+                sources=[
+                    'funlib/segment/arrays/impl/find_components.pyx',
+                    'funlib/segment/arrays/impl/find_components_impl.cpp',
+                ],
+                extra_compile_args=['-O3'],
+                include_dirs=[np.get_include()],
+                language='c++'),
+            Extension(
                 'funlib.segment.graphs.impl.connected_components',
                 sources=[
                     'funlib/segment/graphs/impl/connected_components.pyx',
