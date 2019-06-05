@@ -1,5 +1,6 @@
 #include <vector>
 #include <map>
+#include <cstdint>
 #include <boost/pending/disjoint_sets.hpp>
 #include "find_components_impl.h"
 
