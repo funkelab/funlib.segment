@@ -35,7 +35,7 @@ setup(
                     'funlib/segment/arrays/impl/find_components.pyx',
                     'funlib/segment/arrays/impl/find_components_impl.cpp',
                 ],
-                extra_compile_args=['-O3'],
+                extra_compile_args=['-O3', '-std=c++11'],
                 include_dirs=[np.get_include()],
                 language='c++'),
             Extension(
