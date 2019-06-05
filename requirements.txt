@@ -1,3 +1,4 @@
 -e git://github.com/funkelab/daisy.git#egg=daisy
 cython
 numpy
+-e git://github.com/turagalab/malis.git@beb4ee#egg=malis
