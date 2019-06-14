@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from .impl import find_components
 from .replace_values import replace_values
 import daisy
@@ -6,9 +7,11 @@ import malis
 import numpy as np
 import os
 import tempfile
+import logging
 
+logger = logging.getLogger(__name__)
 
-def relabel_connected_components(array_in, array_out, block_size, num_workers):
+def relabel_connected_components(array_in, array_out, debug_array, block_size, num_workers):
     '''Relabel connected components in an array in parallel.
 
     Args:
@@ -28,6 +31,13 @@ def relabel_connected_components(array_in, array_out, block_size, num_workers):
         num_workers (``int``):
 
             The number of workers to use.
+    '''
+
+    '''
+
+    for debugging --> first connected components writes out to
+    'array_out', second connected components writes out to 'debug_array'
+
     '''
 
     write_roi = daisy.Roi(
@@ -50,9 +60,17 @@ def relabel_connected_components(array_in, array_out, block_size, num_workers):
             num_workers=num_workers,
             fit='shrink')
 
+        # error either happens here after writing nodes/edges to npz
+
         nodes, edges = read_cross_block_merges(tmpdir)
 
+    #or here?
+
     components = find_components(nodes, edges)
+
+    logger.debug("Num nodes: %s", len(nodes))
+    logger.debug("Num edges: %s", len(edges))
+    logger.debug("Num components: %s", len(components))
 
     write_roi = daisy.Roi(
         (0,)*len(block_size),
@@ -66,6 +84,7 @@ def relabel_connected_components(array_in, array_out, block_size, num_workers):
         write_roi,
         process_function=lambda b: relabel_in_block(
             array_out,
+            debug_array,
             nodes,
             components,
             b),
@@ -77,40 +96,66 @@ def find_components_in_block(array_in, array_out, block, tmpdir):
 
     simple_neighborhood = malis.mknhood3d()
 
-    affs = malis.seg_to_affgraph(
-        array_in.to_ndarray(block.write_roi),
-        simple_neighborhood)
+    labels = array_in.to_ndarray(block.read_roi, fill_value=0)
+
+    affs = malis.seg_to_affgraph(labels, simple_neighborhood)
 
     components, _ = malis.connected_components_affgraph(
         affs,
         simple_neighborhood)
 
-    array_out[block.write_roi] = components
+    num_voxels = (block.write_roi / array_in.voxel_size).size()
 
-    a = array_out.to_ndarray(roi=block.read_roi, fill_value=0)
+    components += block.block_id * num_voxels
+
+    components[labels==0] = 0
+
+    array_out[block.write_roi] = components[1:-1, 1:-1, 1:-1]
+
+    neighbors = array_out.to_ndarray(roi=block.read_roi, fill_value=0)
 
     unique_pairs = []
+
+    debug_ids = [
+            8518254597,
+            8490483715,
+            8499740674,
+            8555282463,
+            8453455877,
+            8444198920,
+            8508997633,
+            8555282461
+            ]
 
     for d in range(3):
 
         slices_neg = tuple(
-            slice(None) if dd != d else slice(0, 2)
+            slice(None) if dd != d else slice(0, 1)
             for dd in range(3)
         )
         slices_pos = tuple(
-            slice(None) if dd != d else slice(-2, None)
+            slice(None) if dd != d else slice(-1, None)
             for dd in range(3)
         )
 
-        pairs_neg = a[slices_neg].transpose((d + 2) % 3, (d + 1) % 3, d).\
-            reshape((-1, 2))
-        pairs_pos = a[slices_pos].transpose((d + 2) % 3, (d + 1) % 3, d).\
-            reshape((-1, 2))
+        pairs_neg = np.array([components[slices_neg].flatten(), neighbors[slices_neg].flatten()])
+        pairs_neg = pairs_neg.transpose()
+
+        # logger.debug('Pairs neg %s', pairs_neg.shape)
+
+        pairs_pos = np.array([components[slices_pos].flatten(), neighbors[slices_pos].flatten()])
+        pairs_pos = pairs_pos.transpose()
+
+        # logger.debug('Pairs pos %s', pairs_pos.shape)
 
         unique_pairs.append(
             np.unique(
                 np.concatenate([pairs_neg, pairs_pos]),
                 axis=0))
+
+    # Pretty sure the problem happens somewhere here, we have already written
+    # the correct first connected components array out (array_out), we likely
+    # break something when writing nodes to npz
 
     unique_pairs = np.concatenate(unique_pairs)
     zero_u = unique_pairs[:, 0] == 0
@@ -120,18 +165,25 @@ def find_components_in_block(array_in, array_out, block, tmpdir):
     edges = unique_pairs[non_zero_filter]
     nodes = np.unique(unique_pairs)
 
+    for (u, v) in edges:
+        if u in debug_ids or v in debug_ids:
+            logger.debug("%d == %d", u, v)
+            if u not in debug_ids or v not in debug_ids:
+                logger.debug("%d != %d (wrong merge)", u, v)
+
     np.savez_compressed(
         os.path.join(tmpdir, 'block_%d.npz' % block.block_id),
         nodes=nodes,
         edges=edges)
 
 
-def relabel_in_block(array, old_values, new_values, block):
+def relabel_in_block(array, debug_array, old_values, new_values, block):
+
+    # dont think anything bad happens here
 
     a = array.to_ndarray(block.write_roi)
     replace_values(a, old_values, new_values, inplace=True)
-    array[block.write_roi] = a
-
+    debug_array[block.write_roi] = a
 
 def read_cross_block_merges(tmpdir):
 
