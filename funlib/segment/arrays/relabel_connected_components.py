@@ -38,6 +38,8 @@ def relabel_connected_components(array_in, array_out, block_size, num_workers):
     read_roi = write_roi.grow(array_in.voxel_size, array_in.voxel_size)
     total_roi = array_in.roi.grow(array_in.voxel_size, array_in.voxel_size)
 
+    num_voxels_in_block = (read_roi/array_in.voxel_size).size()
+
     with tempfile.TemporaryDirectory() as tmpdir:
 
         daisy.run_blockwise(
@@ -47,6 +49,7 @@ def relabel_connected_components(array_in, array_out, block_size, num_workers):
             process_function=lambda b: find_components_in_block(
                 array_in,
                 array_out,
+                num_voxels_in_block,
                 b,
                 tmpdir),
             num_workers=num_workers,
@@ -79,39 +82,62 @@ def relabel_connected_components(array_in, array_out, block_size, num_workers):
         fit='shrink')
 
 
-def find_components_in_block(array_in, array_out, block, tmpdir):
+def find_components_in_block(
+        array_in,
+        array_out,
+        num_voxels_in_block,
+        block,
+        tmpdir):
+
+    logger.debug("Finding components in block %s", block)
 
     simple_neighborhood = malis.mknhood3d()
-
-    affs = malis.seg_to_affgraph(
-        array_in.to_ndarray(block.write_roi),
-        simple_neighborhood)
-
+    labels = array_in.to_ndarray(block.read_roi, fill_value=0)
+    affs = malis.seg_to_affgraph(labels, simple_neighborhood)
     components, _ = malis.connected_components_affgraph(
         affs,
         simple_neighborhood)
+    components += 1
 
-    array_out[block.write_roi] = components
+    logger.debug("Labels:\n%s", labels)
+    logger.debug("Components:\n%s", components)
 
-    a = array_out.to_ndarray(roi=block.read_roi, fill_value=0)
+    components += block.block_id * num_voxels_in_block
+    components[labels==0] = 0
+
+    logger.debug(
+        "Bumping component IDs by %d",
+        block.block_id * num_voxels_in_block)
+
+    logger.debug("Components:\n%s", components)
+
+    array_out[block.write_roi] = components[1:-1, 1:-1, 1:-1]
+    neighbors = array_out.to_ndarray(roi=block.read_roi, fill_value=0)
+
+    logger.debug("Neighbors:\n%s", neighbors)
 
     unique_pairs = []
 
     for d in range(3):
 
         slices_neg = tuple(
-            slice(None) if dd != d else slice(0, 2)
+            slice(None) if dd != d else slice(0, 1)
             for dd in range(3)
         )
         slices_pos = tuple(
-            slice(None) if dd != d else slice(-2, None)
+            slice(None) if dd != d else slice(-1, None)
             for dd in range(3)
         )
 
-        pairs_neg = a[slices_neg].transpose((d + 2) % 3, (d + 1) % 3, d).\
-            reshape((-1, 2))
-        pairs_pos = a[slices_pos].transpose((d + 2) % 3, (d + 1) % 3, d).\
-            reshape((-1, 2))
+        pairs_neg = np.array([
+            components[slices_neg].flatten(),
+            neighbors[slices_neg].flatten()])
+        pairs_neg = pairs_neg.transpose()
+
+        pairs_pos = np.array([
+            components[slices_pos].flatten(),
+            neighbors[slices_pos].flatten()])
+        pairs_pos = pairs_pos.transpose()
 
         unique_pairs.append(
             np.unique(
@@ -123,8 +149,13 @@ def find_components_in_block(array_in, array_out, block, tmpdir):
     zero_v = unique_pairs[:, 1] == 0
     non_zero_filter = np.logical_not(np.logical_or(zero_u, zero_v))
 
+    logger.debug("Matching pairs with neighbors: %s", unique_pairs)
+
     edges = unique_pairs[non_zero_filter]
-    nodes = np.unique(unique_pairs)
+    nodes = np.unique(edges)
+
+    logger.debug("Final edges: %s", edges)
+    logger.debug("Final nodes: %s", nodes)
 
     np.savez_compressed(
         os.path.join(tmpdir, 'block_%d.npz' % block.block_id),
