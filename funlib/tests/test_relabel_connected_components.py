@@ -10,6 +10,53 @@ daisy.scheduler._NO_SPAWN_STATUS_THREAD = True
 
 class TestRelabelConnectedComponents(unittest.TestCase):
 
+    def test_minimal(self):
+
+        labels = np.array(
+            [[[
+                1, 1, 1, 2, 2, 3, 2, 2, 1, 140, 140, 0
+            ]]],
+            dtype=np.uint64)
+
+        roi = daisy.Roi((0, 0, 0), labels.shape)
+        voxel_size = (1, 1, 1)
+
+        block_size = (1, 1, 2)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+
+            a = daisy.Array(
+                labels,
+                roi=roi,
+                voxel_size=voxel_size)
+            b = daisy.prepare_ds(
+                os.path.join(tmpdir, 'array_out.zarr'),
+                '/volumes/b',
+                total_roi=roi,
+                voxel_size=voxel_size,
+                write_size=block_size,
+                dtype=np.uint64)
+
+            b.data[:] = 0
+
+            segment.arrays.relabel_connected_components(
+                a, b,
+                block_size,
+                1)
+
+            b = b.data[:].flatten()
+
+            self.assertTrue(b[0] == b[1] == b[2])
+            self.assertTrue(b[3] == b[4])
+            self.assertTrue(b[6] == b[7])
+            self.assertTrue(b[9] == b[10])
+            self.assertTrue(b[2] != b[3])
+            self.assertTrue(b[4] != b[5])
+            self.assertTrue(b[5] != b[6])
+            self.assertTrue(b[7] != b[8])
+            self.assertTrue(b[8] != b[9])
+            self.assertTrue(b[10] != b[11])
+
     def test_relabel_connected_components(self):
 
         roi = daisy.Roi(
