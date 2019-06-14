@@ -94,6 +94,13 @@ def find_components_in_block(
     simple_neighborhood = malis.mknhood3d()
     labels = array_in.to_ndarray(block.read_roi, fill_value=0)
     affs = malis.seg_to_affgraph(labels, simple_neighborhood)
+
+    # FIXME: this does not work as expected:
+    #
+    # labels like [1,2,1,2,1] will results in relabels [0,0,0,0,0], which after
+    # the ID bump will be [x,x,x,x,x], effectively merging together 1 and 2
+    #
+    # don't use malis for relabelling of CCs
     components, _ = malis.connected_components_affgraph(
         affs,
         simple_neighborhood)
