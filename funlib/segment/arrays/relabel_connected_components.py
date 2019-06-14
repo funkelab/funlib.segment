@@ -6,7 +6,9 @@ import malis
 import numpy as np
 import os
 import tempfile
+import logging
 
+logger = logging.getLogger(__name__)
 
 def relabel_connected_components(array_in, array_out, block_size, num_workers):
     '''Relabel connected components in an array in parallel.
@@ -53,6 +55,10 @@ def relabel_connected_components(array_in, array_out, block_size, num_workers):
         nodes, edges = read_cross_block_merges(tmpdir)
 
     components = find_components(nodes, edges)
+
+    logger.debug("Num nodes: %s", len(nodes))
+    logger.debug("Num edges: %s", len(edges))
+    logger.debug("Num components: %s", len(components))
 
     write_roi = daisy.Roi(
         (0,)*len(block_size),
