@@ -2,13 +2,14 @@ from .impl import find_components
 from .replace_values import replace_values
 import daisy
 import glob
-import malis
+import logging
 import numpy as np
 import os
+import skimage
 import tempfile
-import logging
 
 logger = logging.getLogger(__name__)
+
 
 def relabel_connected_components(array_in, array_out, block_size, num_workers):
     '''Relabel connected components in an array in parallel.
@@ -91,26 +92,16 @@ def find_components_in_block(
 
     logger.debug("Finding components in block %s", block)
 
-    simple_neighborhood = malis.mknhood3d()
     labels = array_in.to_ndarray(block.read_roi, fill_value=0)
-    affs = malis.seg_to_affgraph(labels, simple_neighborhood)
-
-    # FIXME: this does not work as expected:
-    #
-    # labels like [1,2,1,2,1] will results in relabels [0,0,0,0,0], which after
-    # the ID bump will be [x,x,x,x,x], effectively merging together 1 and 2
-    #
-    # don't use malis for relabelling of CCs
-    components, _ = malis.connected_components_affgraph(
-        affs,
-        simple_neighborhood)
-    components += 1
+    components = skimage.measure.label(
+        labels,
+        connectivity=1).astype(labels.dtype)
 
     logger.debug("Labels:\n%s", labels)
     logger.debug("Components:\n%s", components)
 
     components += block.block_id * num_voxels_in_block
-    components[labels==0] = 0
+    components[labels == 0] = 0
 
     logger.debug(
         "Bumping component IDs by %d",

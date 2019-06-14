@@ -97,12 +97,12 @@ class TestRelabelConnectedComponents(unittest.TestCase):
 
             out_data = array_out.to_ndarray(roi)
 
-        assert not np.testing.assert_array_equal(out_data[20], out_data[40])
-        assert not np.testing.assert_array_equal(out_data[40], out_data[60])
-        assert out_data[0:20].sum() == 0
-        assert out_data[21:40].sum() == 0
-        assert out_data[41:60].sum() == 0
-        assert out_data[61:].sum() == 0
-        assert len(np.unique(out_data[20])) == 1
-        assert len(np.unique(out_data[40])) == 1
-        assert len(np.unique(out_data[60])) == 1
+        np.testing.assert_array_equal(out_data[20] == out_data[40], False)
+        np.testing.assert_array_equal(out_data[40] == out_data[60], False)
+        self.assertEqual(out_data[0:20].sum(), 0)
+        self.assertEqual(out_data[21:40].sum(), 0)
+        self.assertEqual(out_data[41:60].sum(), 0)
+        self.assertEqual(out_data[61:].sum(), 0)
+        self.assertEqual(len(np.unique(out_data[20])), 1)
+        self.assertEqual(len(np.unique(out_data[40])), 1)
+        self.assertEqual(len(np.unique(out_data[60])), 1)
