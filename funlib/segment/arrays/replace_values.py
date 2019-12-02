@@ -53,10 +53,11 @@ def replace_values(
         old_values = old_values[valid_values]
         new_values = new_values[valid_values]
 
-        # shift old values and in_array such that they start at 0
+        # shift all values such that they start at 0
         offset = min_value
         in_array -= offset
         old_values -= offset
+        new_values -= offset
         min_value -= offset
         max_value -= offset
 
@@ -68,13 +69,12 @@ def replace_values(
 
         if inplace:
 
-            in_array[:] = values_map[in_array]
+            in_array[:] = values_map[in_array] + offset
             return out_array
 
         else:
 
-            out_array = values_map[in_array]
-            # shift back in_array
+            out_array = values_map[in_array] + offset
             in_array += offset
             return out_array
 
