@@ -5,7 +5,7 @@ import glob
 import logging
 import numpy as np
 import os
-import skimage
+import skimage.measure
 import tempfile
 
 logger = logging.getLogger(__name__)
