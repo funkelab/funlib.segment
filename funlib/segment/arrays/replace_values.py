@@ -59,7 +59,10 @@ def replace_values(
         old_values -= offset
 
         # replace with a values map
-        values_map = np.arange(start=min_value, stop=max_value + 1, dtype=dtype)
+        values_map = np.arange(
+            start=min_value,
+            stop=max_value + 1,
+            dtype=dtype)
         values_map[old_values] = new_values
 
         inplace = out_array is in_array
