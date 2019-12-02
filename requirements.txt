@@ -2,4 +2,3 @@
 cython
 numpy
 scikit-image
--e git://github.com/turagalab/malis.git@beb4ee#egg=malis
