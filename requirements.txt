@@ -2,3 +2,4 @@
 cython
 numpy
 scikit-image
+zarr
