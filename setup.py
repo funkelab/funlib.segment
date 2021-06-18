@@ -5,6 +5,14 @@ import numpy as np
 
 print(np.get_include())
 
+requirements = [
+    "numpy",
+    "daisy",
+    "scikit-image",
+    "cython",
+    "zarr",
+]
+
 setup(
         name='funlib.segment',
         version='0.1',
@@ -48,5 +56,6 @@ setup(
                 include_dirs=[np.get_include()],
                 language='c++')
         ]),
+        install_requires=requirements,
         requires_python=">=3.6, <4",
 )
