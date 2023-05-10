@@ -3,11 +3,10 @@ from .impl import replace_values_inplace
 import numpy as np
 
 
-def replace_values(
-        in_array, old_values, new_values, out_array=None, inplace=None):
-    '''Replace each ``old_values`` in ``array`` with the corresponding
+def replace_values(in_array, old_values, new_values, out_array=None, inplace=None):
+    """Replace each ``old_values`` in ``array`` with the corresponding
     ``new_values``. Other values are not changed.
-    '''
+    """
 
     # `inplace` and `out_array` cannot be both specified
     if out_array is not None:
@@ -46,10 +45,7 @@ def replace_values(
     # this can only be done if `out_array` is not provided and when
     # `out_array` is provided and it _is_ `in_array`
     if (out_array is None or out_array is in_array) and value_range < 1024**3:
-
-        valid_values = np.logical_and(
-            old_values >= min_value,
-            old_values <= max_value)
+        valid_values = np.logical_and(old_values >= min_value, old_values <= max_value)
         old_values = old_values[valid_values]
         new_values = new_values[valid_values]
 
@@ -59,36 +55,31 @@ def replace_values(
         old_values -= offset
 
         # replace with a values map
-        values_map = np.arange(
-            start=min_value,
-            stop=max_value + 1,
-            dtype=dtype)
+        values_map = np.arange(start=min_value, stop=max_value + 1, dtype=dtype)
         values_map[old_values] = new_values
 
         inplace = out_array is in_array
 
         if inplace:
-
             in_array[:] = values_map[in_array]
 
         else:
-
             out_array = values_map[in_array]
             in_array += offset
 
         return out_array
 
     else:
-
         # replace using C++ implementation
 
         if out_array is None:
             out_array = in_array.copy()
 
         replace_values_inplace(
-            np.ravel(in_array, order='A'),
-            np.ravel(old_values, order='A'),
-            np.ravel(new_values, order='A'),
-            np.ravel(out_array, order='A'))
+            np.ravel(in_array, order="A"),
+            np.ravel(old_values, order="A"),
+            np.ravel(new_values, order="A"),
+            np.ravel(out_array, order="A"),
+        )
 
         return out_array

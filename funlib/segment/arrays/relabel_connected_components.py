@@ -4,18 +4,15 @@ import skimage.measure
 
 
 def label_connected_components(array_in, roi):
-
     labels = array_in.to_ndarray(roi, fill_value=0)
-    components = skimage.measure.label(
-        labels,
-        connectivity=1).astype(labels.dtype)
+    components = skimage.measure.label(labels, connectivity=1).astype(labels.dtype)
     components[labels == 0] = 0
 
     return components
 
 
 def relabel_connected_components(array_in, array_out, block_size, num_workers):
-    '''Relabel connected components in an array in parallel.
+    """Relabel connected components in an array in parallel.
 
     Args:
 
@@ -34,7 +31,7 @@ def relabel_connected_components(array_in, array_out, block_size, num_workers):
         num_workers (``int``):
 
             The number of workers to use.
-    '''
+    """
 
     block_size = daisy.Coordinate(block_size)
 
@@ -44,4 +41,5 @@ def relabel_connected_components(array_in, array_out, block_size, num_workers):
         block_size=block_size,
         context=array_in.voxel_size,
         num_workers=num_workers,
-        segment_function=label_connected_components)
+        segment_function=label_connected_components,
+    )
