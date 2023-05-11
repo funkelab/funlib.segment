@@ -1,7 +1,0 @@
-funlib.persistence >= 0.1
-funlib.geometry >= 0.2
-daisy >= 1.0
-cython
-numpy
-scikit-image
-zarr
