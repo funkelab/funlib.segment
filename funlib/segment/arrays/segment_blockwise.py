@@ -1,5 +1,7 @@
 from .impl import find_components
 from .replace_values import replace_values
+
+from funlib.persistence import Array
 import daisy
 import glob
 import logging
@@ -17,12 +19,12 @@ def segment_blockwise(
 
     Args:
 
-        array_in (``daisy.Array``):
+        array_in (``Array``):
 
             The input data needed by `segment_function` to produce a
             segmentation.
 
-        array_out (``daisy.Array``):
+        array_out (``Array``):
 
             The array to write to. Should initially be empty (i.e., all zeros).
 
@@ -54,14 +56,15 @@ def segment_blockwise(
     read_roi = write_roi.grow(context, context)
     total_roi = array_in.roi.grow(context, context)
 
-    num_voxels_in_block = (read_roi / array_in.voxel_size).size()
+    num_voxels_in_block = (read_roi / array_in.voxel_size).size
 
     with tempfile.TemporaryDirectory() as tmpdir:
         print(f"total_roi: {total_roi}:")
         print(f"read_roi: {read_roi}:")
         print(f"write_roi: {write_roi}:")
 
-        daisy.run_blockwise(
+        task = daisy.Task(
+            "segment_blockwise",
             total_roi,
             read_roi,
             write_roi,
@@ -72,6 +75,7 @@ def segment_blockwise(
             fit="shrink",
             read_write_conflict=True,
         )
+        daisy.run_blockwise([task])
 
         nodes, edges = read_cross_block_merges(tmpdir)
 
@@ -85,7 +89,8 @@ def segment_blockwise(
     read_roi = write_roi
     total_roi = array_in.roi
 
-    daisy.run_blockwise(
+    task = daisy.Task(
+        "relabel_blockwise",
         total_roi,
         read_roi,
         write_roi,
@@ -93,6 +98,8 @@ def segment_blockwise(
         num_workers=num_workers,
         fit="shrink",
     )
+
+    daisy.run_blockwise([task])
 
 
 def segment_in_block(
@@ -102,19 +109,19 @@ def segment_in_block(
 
     segmentation = segment_function(array_in, block.read_roi)
 
-    print("========= block %d ====== " % block.block_id)
+    print("========= block %d ====== " % block.block_id[1])
     print(segmentation)
 
     assert segmentation.dtype == np.uint64
 
-    id_bump = block.block_id * num_voxels_in_block
+    id_bump = block.block_id[1] * num_voxels_in_block
     segmentation += id_bump
     segmentation[segmentation == id_bump] = 0
 
     logger.debug("Bumping segmentation IDs by %d", id_bump)
 
     # wrap segmentation into daisy array
-    segmentation = daisy.Array(
+    segmentation = Array(
         segmentation, roi=block.read_roi, voxel_size=array_in.voxel_size
     )
 
@@ -161,7 +168,9 @@ def segment_in_block(
     logger.debug("Final nodes: %s", nodes)
 
     np.savez_compressed(
-        os.path.join(tmpdir, "block_%d.npz" % block.block_id), nodes=nodes, edges=edges
+        os.path.join(tmpdir, "block_%d.npz" % block.block_id[1]),
+        nodes=nodes,
+        edges=edges,
     )
 
 

@@ -16,11 +16,11 @@ def relabel_connected_components(array_in, array_out, block_size, num_workers):
 
     Args:
 
-        array_in (``daisy.Array``):
+        array_in (``Array``):
 
             The array to relabel.
 
-        array_out (``daisy.Array``):
+        array_out (``Array``):
 
             The array to write to. Should initially be empty (i.e., all zeros).
 
