@@ -1,5 +1,7 @@
 from .impl import find_components
 from .replace_values import replace_values
+
+from funlib.persistence import Array
 import daisy
 import glob
 import logging
@@ -11,22 +13,18 @@ logger = logging.getLogger(__name__)
 
 
 def segment_blockwise(
-        array_in,
-        array_out,
-        block_size,
-        context,
-        num_workers,
-        segment_function):
-    '''Segment an array in parallel.
+    array_in, array_out, block_size, context, num_workers, segment_function
+):
+    """Segment an array in parallel.
 
     Args:
 
-        array_in (``daisy.Array``):
+        array_in (``Array``):
 
             The input data needed by `segment_function` to produce a
             segmentation.
 
-        array_out (``daisy.Array``):
+        array_out (``Array``):
 
             The array to write to. Should initially be empty (i.e., all zeros).
 
@@ -51,37 +49,33 @@ def segment_blockwise(
             shape of ``roi`` (using the voxel size of ``array_in``) with
             datatype ``np.uint64``. Zero in the segmentation are considered
             background and will stay zero.
-    '''
+    """
 
     write_size = daisy.Coordinate(block_size)
-    write_roi = daisy.Roi(
-        (0,)*len(write_size),
-        write_size)
+    write_roi = daisy.Roi((0,) * len(write_size), write_size)
     read_roi = write_roi.grow(context, context)
     total_roi = array_in.roi.grow(context, context)
 
-    num_voxels_in_block = (read_roi/array_in.voxel_size).size()
+    num_voxels_in_block = (read_roi / array_in.voxel_size).size
 
     with tempfile.TemporaryDirectory() as tmpdir:
-
         print(f"total_roi: {total_roi}:")
         print(f"read_roi: {read_roi}:")
         print(f"write_roi: {write_roi}:")
 
-        daisy.run_blockwise(
+        task = daisy.Task(
+            "segment_blockwise",
             total_roi,
             read_roi,
             write_roi,
             process_function=lambda b: segment_in_block(
-                array_in,
-                array_out,
-                num_voxels_in_block,
-                b,
-                tmpdir,
-                segment_function),
+                array_in, array_out, num_voxels_in_block, b, tmpdir, segment_function
+            ),
             num_workers=num_workers,
-            fit='shrink',
-            read_write_conflict=True)
+            fit="shrink",
+            read_write_conflict=True,
+        )
+        daisy.run_blockwise([task])
 
         nodes, edges = read_cross_block_merges(tmpdir)
 
@@ -91,62 +85,50 @@ def segment_blockwise(
     logger.debug("Num edges: %s", len(edges))
     logger.debug("Num components: %s", len(components))
 
-    write_roi = daisy.Roi(
-        (0,)*len(write_size),
-        write_size)
+    write_roi = daisy.Roi((0,) * len(write_size), write_size)
     read_roi = write_roi
     total_roi = array_in.roi
 
-    daisy.run_blockwise(
+    task = daisy.Task(
+        "relabel_blockwise",
         total_roi,
         read_roi,
         write_roi,
-        process_function=lambda b: relabel_in_block(
-            array_out,
-            nodes,
-            components,
-            b),
+        process_function=lambda b: relabel_in_block(array_out, nodes, components, b),
         num_workers=num_workers,
-        fit='shrink')
+        fit="shrink",
+    )
+
+    daisy.run_blockwise([task])
 
 
 def segment_in_block(
-        array_in,
-        array_out,
-        num_voxels_in_block,
-        block,
-        tmpdir,
-        segment_function):
-
+    array_in, array_out, num_voxels_in_block, block, tmpdir, segment_function
+):
     logger.debug("Segmenting in block %s", block)
 
     segmentation = segment_function(array_in, block.read_roi)
 
-    print("========= block %d ====== " % block.block_id)
+    print("========= block %d ====== " % block.block_id[1])
     print(segmentation)
 
     assert segmentation.dtype == np.uint64
 
-    id_bump = block.block_id * num_voxels_in_block
+    id_bump = block.block_id[1] * num_voxels_in_block
     segmentation += id_bump
     segmentation[segmentation == id_bump] = 0
 
-    logger.debug(
-        "Bumping segmentation IDs by %d",
-        id_bump)
+    logger.debug("Bumping segmentation IDs by %d", id_bump)
 
     # wrap segmentation into daisy array
-    segmentation = daisy.Array(
-        segmentation,
-        roi=block.read_roi,
-        voxel_size=array_in.voxel_size)
+    segmentation = Array(
+        segmentation, roi=block.read_roi, voxel_size=array_in.voxel_size
+    )
 
     # store segmentation in out array
     array_out[block.write_roi] = segmentation[block.write_roi]
 
-    neighbor_roi = block.write_roi.grow(
-        array_in.voxel_size,
-        array_in.voxel_size)
+    neighbor_roi = block.write_roi.grow(array_in.voxel_size, array_in.voxel_size)
 
     # clip segmentation to 1-voxel context
     segmentation = segmentation.to_ndarray(roi=neighbor_roi, fill_value=0)
@@ -155,30 +137,22 @@ def segment_in_block(
     unique_pairs = []
 
     for d in range(3):
-
-        slices_neg = tuple(
-            slice(None) if dd != d else slice(0, 1)
-            for dd in range(3)
-        )
+        slices_neg = tuple(slice(None) if dd != d else slice(0, 1) for dd in range(3))
         slices_pos = tuple(
-            slice(None) if dd != d else slice(-1, None)
-            for dd in range(3)
+            slice(None) if dd != d else slice(-1, None) for dd in range(3)
         )
 
-        pairs_neg = np.array([
-            segmentation[slices_neg].flatten(),
-            neighbors[slices_neg].flatten()])
+        pairs_neg = np.array(
+            [segmentation[slices_neg].flatten(), neighbors[slices_neg].flatten()]
+        )
         pairs_neg = pairs_neg.transpose()
 
-        pairs_pos = np.array([
-            segmentation[slices_pos].flatten(),
-            neighbors[slices_pos].flatten()])
+        pairs_pos = np.array(
+            [segmentation[slices_pos].flatten(), neighbors[slices_pos].flatten()]
+        )
         pairs_pos = pairs_pos.transpose()
 
-        unique_pairs.append(
-            np.unique(
-                np.concatenate([pairs_neg, pairs_pos]),
-                axis=0))
+        unique_pairs.append(np.unique(np.concatenate([pairs_neg, pairs_pos]), axis=0))
 
     unique_pairs = np.concatenate(unique_pairs)
     zero_u = unique_pairs[:, 0] == 0
@@ -194,27 +168,26 @@ def segment_in_block(
     logger.debug("Final nodes: %s", nodes)
 
     np.savez_compressed(
-        os.path.join(tmpdir, 'block_%d.npz' % block.block_id),
+        os.path.join(tmpdir, "block_%d.npz" % block.block_id[1]),
         nodes=nodes,
-        edges=edges)
+        edges=edges,
+    )
 
 
 def relabel_in_block(array, old_values, new_values, block):
-
     a = array.to_ndarray(block.write_roi)
     replace_values(a, old_values, new_values, inplace=True)
     array[block.write_roi] = a
 
 
 def read_cross_block_merges(tmpdir):
-
-    block_files = glob.glob(os.path.join(tmpdir, 'block_*.npz'))
+    block_files = glob.glob(os.path.join(tmpdir, "block_*.npz"))
 
     nodes = []
     edges = []
     for block_file in block_files:
         b = np.load(block_file)
-        nodes.append(b['nodes'])
-        edges.append(b['edges'])
+        nodes.append(b["nodes"])
+        edges.append(b["edges"])
 
     return np.concatenate(nodes), np.concatenate(edges)

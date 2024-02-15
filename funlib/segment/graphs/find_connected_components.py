@@ -4,13 +4,14 @@ import numpy as np
 
 
 def find_connected_components(
-        graph,
-        node_component_attribute=None,
-        edge_score_attribute=None,
-        edge_score_relation='<=',
-        edge_score_threshold=None,
-        return_lut=True):
-    '''Label connected components in the given graph.
+    graph,
+    node_component_attribute=None,
+    edge_score_attribute=None,
+    edge_score_relation="<=",
+    edge_score_threshold=None,
+    return_lut=True,
+):
+    """Label connected components in the given graph.
 
     By default, connectivitiy is induced by the existence of edges.
 
@@ -49,17 +50,17 @@ def find_connected_components(
         return_lut (``bool``, optional):
 
             Return a look-up table from nodes to components.
-    '''
+    """
 
     if node_component_attribute is None and not return_lut:
         raise RuntimeError(
-            "Either 'node_component_attribute' or 'return_lut' has to be "
-            "given.")
+            "Either 'node_component_attribute' or 'return_lut' has to be " "given."
+        )
 
     # convert the graph into a continuous memory representation for the C++
     # backend
 
-    if edge_score_attribute is not None and edge_score_relation != '<=':
+    if edge_score_attribute is not None and edge_score_relation != "<=":
         raise RuntimeError("Other relations than '<=' not yet implemented.")
 
     nodes = np.array(graph.nodes, dtype=np.uint64)
@@ -67,28 +68,19 @@ def find_connected_components(
 
     if edge_score_attribute is not None:
         scores = np.array(
-            list(e[2] for e in graph.edges(data=edge_score_attribute)),
-            dtype=np.float32)
+            list(e[2] for e in graph.edges(data=edge_score_attribute)), dtype=np.float32
+        )
     else:
         scores = np.ones(len(graph.edges), dtype=np.float32)
         edge_score_threshold = 1
 
     # find connected components
-    components = connected_components(
-        nodes,
-        edges,
-        scores,
-        edge_score_threshold)
+    components = connected_components(nodes, edges, scores, edge_score_threshold)
 
     if node_component_attribute is not None:
-
         # write back node attributes
         for node, component in zip(nodes, components):
             graph.nodes[node][node_component_attribute] = component
 
     if return_lut:
-
-        return {
-            node: component
-            for node, component in zip(nodes, components)
-        }
+        return {node: component for node, component in zip(nodes, components)}

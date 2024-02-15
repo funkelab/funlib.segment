@@ -4,9 +4,7 @@ import unittest
 
 
 class TestArrayRelabel(unittest.TestCase):
-
     def test_replace(self):
-
         a = np.array([0, 1, 2, 3, 4, 5])
         old = np.array([2, 3])
         new = np.array([20, 30])
@@ -40,7 +38,6 @@ class TestArrayRelabel(unittest.TestCase):
         np.testing.assert_array_equal(b, [0, 1, 1e12])
 
     def test_replace_inplace(self):
-
         a = np.array([0, 1, 2, 3, 4, 5])
         old = np.array([2, 3])
         new = np.array([20, 30])
@@ -74,7 +71,6 @@ class TestArrayRelabel(unittest.TestCase):
         np.testing.assert_array_equal(b, [0, 1, 1e12])
 
     def test_replace_explicit_output(self):
-
         a = np.array([0, 1, 2, 3, 4, 5])
         b = a.copy()
         old = np.array([2, 3])
@@ -132,7 +128,6 @@ class TestArrayRelabel(unittest.TestCase):
         np.testing.assert_array_equal(b, [0, 1, 1e12])
 
     def test_relabel(self):
-
         a = np.array([0, 1, 2, 3, 4, 5])
         b, n, bmap = segment.arrays.relabel(a, return_backwards_map=True)
 

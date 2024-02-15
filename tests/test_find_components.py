@@ -4,24 +4,14 @@ import unittest
 
 
 class TestFindComponents(unittest.TestCase):
-
     def test_find_components(self):
-
         nodes = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], dtype=np.uint64)
-        edges = np.array([
-            [0, 1],
-            [2, 3],
-            [3, 7],
-            [3, 7],
-            [3, 7],
-            [3, 7],
-            [3, 7],
-            [6, 2]
-        ], dtype=np.uint64)
+        edges = np.array(
+            [[0, 1], [2, 3], [3, 7], [3, 7], [3, 7], [3, 7], [3, 7], [6, 2]],
+            dtype=np.uint64,
+        )
 
-        components = segment.arrays.impl.find_components(
-            nodes,
-            edges)
+        components = segment.arrays.impl.find_components(nodes, edges)
 
         self.assertEqual(components[0], components[1])
         self.assertEqual(components[2], components[3])
@@ -32,17 +22,10 @@ class TestFindComponents(unittest.TestCase):
         self.assertNotEqual(components[1], components[2])
 
     def test_find_components_large_ids(self):
-
         nodes = np.array([0, 1, 2, np.uint64(-1), 1000], dtype=np.uint64)
-        edges = np.array([
-            [0, 1],
-            [2, 1000],
-            [np.uint64(-1), 1000]
-        ], dtype=np.uint64)
+        edges = np.array([[0, 1], [2, 1000], [np.uint64(-1), 1000]], dtype=np.uint64)
 
-        components = segment.arrays.impl.find_components(
-            nodes,
-            edges)
+        components = segment.arrays.impl.find_components(nodes, edges)
 
         self.assertEqual(components[0], components[1])
         self.assertEqual(components[2], components[3])

@@ -4,7 +4,7 @@ import numpy as np
 
 
 def relabel(array, return_backwards_map=False, inplace=False):
-    '''Relabel array, such that IDs are consecutive. Excludes 0.
+    """Relabel array, such that IDs are consecutive. Excludes 0.
 
     Args:
 
@@ -28,10 +28,9 @@ def relabel(array, return_backwards_map=False, inplace=False):
 
         If ``return_backwards_map`` is ``True``, returns ``(relabelled, n,
         backwards_map)``.
-    '''
+    """
 
     if array.size == 0:
-
         if return_backwards_map:
             return array, 0, []
         else:
@@ -42,7 +41,6 @@ def relabel(array, return_backwards_map=False, inplace=False):
     old_labels = old_labels[old_labels != 0]
 
     if old_labels.size == 0:
-
         if return_backwards_map:
             return array, 0, [0]
         else:
@@ -54,7 +52,6 @@ def relabel(array, return_backwards_map=False, inplace=False):
     replaced = replace_values(array, old_labels, new_labels, inplace=inplace)
 
     if return_backwards_map:
-
         backwards_map = np.insert(old_labels, 0, 0)
         return replaced, n, backwards_map
 
