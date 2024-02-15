@@ -5,6 +5,14 @@ import numpy as np
 
 print(np.get_include())
 
+requirements = [
+    "numpy",
+    "daisy",
+    "scikit-image",
+    "cython",
+    "zarr",
+]
+
 setup(
     name="funlib.segment",
     version="0.1",
